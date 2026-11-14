@@ -27,6 +27,7 @@ from mlflow.utils.mlflow_tags import MLFLOW_DATASET_CONTEXT
 from mlflow.utils.search_utils import (
     SearchEvaluationDatasetsUtils,
     SearchExperimentsUtils,
+    SearchLoggedModelsPaginationToken,
     SearchLoggedModelsUtils,
     SearchMCPAccessEndpointUtils,
     SearchMCPServerUtils,
@@ -954,6 +955,22 @@ def test_pagination(page_token, max_results, matching_runs, expected_next_page_t
 def test_invalid_page_tokens(page_token, error_message):
     with pytest.raises(MlflowException, match=error_message):
         SearchUtils.paginate([], page_token, 1)
+
+
+@pytest.mark.parametrize(
+    "page_token",
+    [
+        # A real token with its last character lost (e.g. a copy-paste truncation)
+        SearchLoggedModelsPaginationToken(experiment_ids=["1"], offset=1).encode()[:-1],
+        "not base64",
+        base64.b64encode(b"\xff\xfe").decode(),
+        base64.b64encode(b"not json").decode(),
+    ],
+)
+def test_search_logged_models_invalid_page_tokens(page_token):
+    with pytest.raises(MlflowException, match="Invalid page token") as exc:
+        SearchLoggedModelsPaginationToken.decode(page_token)
+    assert exc.value.error_code == "INVALID_PARAMETER_VALUE"
 
 
 def test_like_pattern_with_plus_character():

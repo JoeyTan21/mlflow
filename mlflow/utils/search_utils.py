@@ -2789,7 +2789,7 @@ class SearchLoggedModelsPaginationToken:
     def decode(cls, token: str) -> "SearchLoggedModelsPaginationToken":
         try:
             token = json.loads(base64.b64decode(token.encode("utf-8")).decode("utf-8"))
-        except json.JSONDecodeError as e:
+        except ValueError as e:  # bad base64, non-UTF-8 bytes, or invalid JSON
             raise MlflowException.invalid_parameter_value(f"Invalid page token: {token}. {e}")
 
         return cls(
